@@ -8,11 +8,25 @@ export default function EmployeePage() {
   const [nameInput, setNameInput] = useState('')
   const [popup, setPopup] = useState(null)
   const [lastSeen, setLastSeen] = useState([])
+  const [notifPermission, setNotifPermission] = useState('default')
 
   useEffect(() => {
     const saved = localStorage.getItem('employee_name')
     if (saved) { setName(saved); setNameSet(true) }
   }, [])
+
+  useEffect(() => {
+    if (nameSet) {
+      requestNotificationPermission()
+    }
+  }, [nameSet])
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission()
+      setNotifPermission(permission)
+    }
+  }
 
   useEffect(() => {
     if (!nameSet || !name) return
@@ -23,7 +37,38 @@ export default function EmployeePage() {
     channel.bind('new-notification', (data) => {
       const isForMe = data.targets.includes(name)
       if (!isForMe) return
+
+      // Show in-app popup
       setPopup({ id: data.notifId, message: data.message })
+
+      // Force window focus
+      window.focus()
+
+      // Show OS browser notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const notif = new Notification('📣 IMPORTANT ANNOUNCEMENT', {
+          body: data.message,
+          requireInteraction: true,
+          icon: '/favicon.ico',
+        })
+        notif.onclick = () => {
+          window.focus()
+          notif.close()
+        }
+      }
+
+      // Play alert sound
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)()
+        const oscillator = ctx.createOscillator()
+        const gainNode = ctx.createGain()
+        oscillator.connect(gainNode)
+        gainNode.connect(ctx.destination)
+        oscillator.frequency.value = 880
+        gainNode.gain.value = 0.3
+        oscillator.start()
+        oscillator.stop(ctx.currentTime + 0.3)
+      } catch(e) {}
     })
     return () => pusher.disconnect()
   }, [nameSet, name])
@@ -54,7 +99,7 @@ export default function EmployeePage() {
           <p style={styles.sub}>StudyAbroad Consultancy</p>
           <p style={styles.hint}>Enter your name to receive notifications</p>
           <input
-            placeholder="Your full name (e.g. Priya Sharma)"
+            placeholder="Your full name (e.g. Nirali)"
             value={nameInput}
             onChange={e => setNameInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && saveName()}
@@ -99,6 +144,14 @@ export default function EmployeePage() {
           <span style={styles.greenDot}></span>
           <span style={styles.statusText}>Connected — waiting for notifications</span>
         </div>
+        {notifPermission !== 'granted' && (
+          <div style={styles.warningCard}>
+            ⚠️ Please allow notifications for full screen alerts!
+            <button onClick={requestNotificationPermission} style={styles.allowBtn}>
+              ALLOW NOTIFICATIONS
+            </button>
+          </div>
+        )}
         <h3 style={styles.sectionTitle}>ACKNOWLEDGED NOTIFICATIONS</h3>
         {lastSeen.length === 0 && (
           <p style={styles.empty}>No notifications received yet.</p>
@@ -122,10 +175,12 @@ const styles = {
   nameTag: { color: '#22c55e', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' },
   dot: { width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' },
   body: { padding: '32px' },
-  statusCard: { background: '#111', border: '1px solid #1a7a4a', borderRadius: '6px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' },
+  statusCard: { background: '#111', border: '1px solid #1a7a4a', borderRadius: '6px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' },
   greenDot: { width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 },
   statusText: { color: '#888', fontSize: '13px' },
-  sectionTitle: { color: '#555', fontSize: '11px', letterSpacing: '2px', marginBottom: '16px' },
+  warningCard: { background: '#1a1200', border: '1px solid #5a4000', borderRadius: '6px', padding: '14px 20px', marginBottom: '16px', color: '#ffaa00', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  allowBtn: { background: '#5a4000', color: '#ffaa00', border: '1px solid #ffaa00', borderRadius: '4px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', fontFamily: 'monospace' },
+  sectionTitle: { color: '#555', fontSize: '11px', letterSpacing: '2px', marginBottom: '16px', marginTop: '16px' },
   empty: { color: '#333', fontSize: '14px' },
   seenItem: { background: '#111', border: '1px solid #1e3a2a', borderRadius: '4px', padding: '12px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' },
   seenCheck: { color: '#22c55e', fontSize: '16px' },
