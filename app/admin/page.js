@@ -119,8 +119,9 @@ const [pwError, setPwError] = useState('')
       <div style={styles.header}>
         <div>
           <span style={styles.headerBadge}>ADMIN</span>
-          <h1 style={styles.headerTitle}>Notification Dashboard</h1>
-        </div>
+<img src="/Logo.png" alt="Logo" style={{ height: '40px', objectFit: 'contain' }} />
+<h1 style={styles.headerTitle}>Notification Dashboard</h1>     
+   </div>
         <span style={styles.headerSub}>{EMPLOYEES.length} employees</span>
       </div>
       <div style={styles.grid}>
