@@ -81,7 +81,7 @@ export default function EmployeePage() {
     return (
       <div style={styles.loginWrap}>
         <div style={styles.loginBox}>
-          <img src="/Logo.png" alt="logo" style={{ height: '68px', objectFit: 'contain', background: 'white', padding: '6px 14px', borderRadius: '6px', marginBottom: '20px' }} />
+          <img src="/Logo.png" alt="logo" style={{ height: '68px', objectFit: 'contain', background: 'white', padding: '4px 10px', borderRadius: '6px', marginBottom: '20px' }} />
           <h2 style={styles.title}>EMPLOYEE LOGIN</h2>
           <p style={styles.sub}>StudyAbroad Consultancy</p>
           <p style={styles.hint}>Enter your name to receive notifications</p>
