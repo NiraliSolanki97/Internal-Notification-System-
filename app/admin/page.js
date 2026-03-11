@@ -87,7 +87,7 @@ export default function AdminPage() {
           <span style={styles.headerBadge}>ADMIN</span>
           <h1 style={styles.headerTitle}>Notification Dashboard</h1>
         </div>
-        <img src="/Logo.png" alt="logo" style={{ height: '36px', objectFit: 'contain', background: 'white', padding: '4px 10px', borderRadius: '6px' }} />
+        <img src="/Logo.png" alt="logo" style={{ height: '52px', objectFit: 'contain', background: 'white', padding: '4px 10px', borderRadius: '6px' }} />
       </div>
       <div style={styles.grid}>
         <div style={styles.card}>
