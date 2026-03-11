@@ -132,7 +132,7 @@ export default function EmployeePage() {
       <div style={styles.header}>
         <div>
           <span style={styles.badge}>EMPLOYEE</span>
-<img src="/Logo.png" alt="Logo" style={{ height: '40px', objectFit: 'contain' }} />
+<img src="/Logo.png" alt="logo" style={{ height: '32px', objectFit: 'contain', marginLeft: 'auto' }} />
 <h1 style={styles.headerTitle}>Notification Inbox</h1>
         </div>
         <div style={styles.nameTag}>
