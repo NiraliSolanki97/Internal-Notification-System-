@@ -16,9 +16,7 @@ export default function EmployeePage() {
   }, [])
 
   useEffect(() => {
-    if (nameSet) {
-      requestNotificationPermission()
-    }
+    if (nameSet) requestNotificationPermission()
   }, [nameSet])
 
   const requestNotificationPermission = async () => {
@@ -37,27 +35,16 @@ export default function EmployeePage() {
     channel.bind('new-notification', (data) => {
       const isForMe = data.targets.includes(name)
       if (!isForMe) return
-
-      // Show in-app popup
       setPopup({ id: data.notifId, message: data.message })
-
-      // Force window focus
       window.focus()
-
-      // Show OS browser notification
       if ('Notification' in window && Notification.permission === 'granted') {
         const notif = new Notification('📣 IMPORTANT ANNOUNCEMENT', {
           body: data.message,
           requireInteraction: true,
-          icon: '/favicon.ico',
+          icon: '/Logo.png',
         })
-        notif.onclick = () => {
-          window.focus()
-          notif.close()
-        }
+        notif.onclick = () => { window.focus(); notif.close() }
       }
-
-      // Play alert sound
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)()
         const oscillator = ctx.createOscillator()
@@ -94,7 +81,7 @@ export default function EmployeePage() {
     return (
       <div style={styles.loginWrap}>
         <div style={styles.loginBox}>
-          <div style={styles.logo}>👤</div>
+          <img src="/Logo.png" alt="logo" style={{ height: '48px', objectFit: 'contain', background: 'white', padding: '6px 14px', borderRadius: '6px', marginBottom: '20px' }} />
           <h2 style={styles.title}>EMPLOYEE LOGIN</h2>
           <p style={styles.sub}>StudyAbroad Consultancy</p>
           <p style={styles.hint}>Enter your name to receive notifications</p>
@@ -130,27 +117,21 @@ export default function EmployeePage() {
         </div>
       )}
       <div style={styles.header}>
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={styles.badge}>EMPLOYEE</span>
-<img src="/Logo.png" alt="logo" style={{ height: '32px', objectFit: 'contain', marginLeft: 'auto' }} />
-<h1 style={styles.headerTitle}>Notification Inbox</h1>
+          <h1 style={styles.headerTitle}>Notification Inbox</h1>
         </div>
-        <div style={styles.nameTag}>
-          <span style={styles.dot}></span>
-          {name}
-        </div>
+        <img src="/Logo.png" alt="logo" style={{ height: '36px', objectFit: 'contain', background: 'white', padding: '4px 10px', borderRadius: '6px' }} />
       </div>
       <div style={styles.body}>
         <div style={styles.statusCard}>
           <span style={styles.greenDot}></span>
-          <span style={styles.statusText}>Connected — waiting for notifications</span>
+          <span style={styles.statusText}>Connected — waiting for notifications · <strong style={{color:'#22c55e'}}>{name}</strong></span>
         </div>
         {notifPermission !== 'granted' && (
           <div style={styles.warningCard}>
             ⚠️ Please allow notifications for full screen alerts!
-            <button onClick={requestNotificationPermission} style={styles.allowBtn}>
-              ALLOW NOTIFICATIONS
-            </button>
+            <button onClick={requestNotificationPermission} style={styles.allowBtn}>ALLOW NOTIFICATIONS</button>
           </div>
         )}
         <h3 style={styles.sectionTitle}>ACKNOWLEDGED NOTIFICATIONS</h3>
@@ -170,11 +151,9 @@ export default function EmployeePage() {
 
 const styles = {
   page: { minHeight: '100vh', background: '#0f0f0f' },
-  header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   badge: { background: '#16532f', color: '#22c55e', fontSize: '11px', padding: '2px 10px', borderRadius: '2px', letterSpacing: '2px', display: 'inline-block', marginBottom: '4px' },
   headerTitle: { color: '#e8e8e8', fontSize: '20px', fontWeight: 'bold' },
-  nameTag: { color: '#22c55e', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' },
-  dot: { width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' },
   body: { padding: '32px' },
   statusCard: { background: '#111', border: '1px solid #1a7a4a', borderRadius: '6px', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' },
   greenDot: { width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 },
@@ -193,11 +172,10 @@ const styles = {
   popupFrom: { color: '#555', fontSize: '12px', marginBottom: '20px' },
   popupMsgBox: { background: '#0d1a12', border: '1px solid #1a7a4a', borderRadius: '6px', padding: '20px 24px', marginBottom: '28px' },
   popupMsg: { color: '#e8e8e8', fontSize: '18px', lineHeight: '1.7', fontWeight: 'bold' },
-  ackBtn: { background: '#1a7a4a', color: '#fff', border: '2px solid #22c55e', borderRadius: '6px', padding: '16px 32px', fontSize: '15px', letterSpacing: '1px', fontWeight: 'bold', fontFamily: 'monospace', width: '100%', marginBottom: '12px' },
+  ackBtn: { background: '#1a7a4a', color: '#fff', border: '2px solid #22c55e', borderRadius: '6px', padding: '16px 32px', fontSize: '15px', letterSpacing: '1px', fontWeight: 'bold', fontFamily: 'monospace', width: '100%', marginBottom: '12px', cursor: 'pointer' },
   ackHint: { color: '#333', fontSize: '11px' },
   loginWrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f0f0f' },
   loginBox: { background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: '8px', padding: '40px', width: '380px', textAlign: 'center' },
-  logo: { fontSize: '48px', marginBottom: '16px' },
   title: { color: '#22c55e', fontSize: '20px', letterSpacing: '3px', marginBottom: '8px' },
   sub: { color: '#555', fontSize: '12px', marginBottom: '4px' },
   hint: { color: '#444', fontSize: '12px', marginBottom: '24px' },

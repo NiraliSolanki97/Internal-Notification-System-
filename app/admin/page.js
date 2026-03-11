@@ -16,13 +16,10 @@ const EMPLOYEES = [
   'Swapnil',
   'Juhi',
   'Shrusti',
-  
 ]
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(true)
-const [pw, setPw] = useState('')
-const [pwError, setPwError] = useState('')
   const [message, setMessage] = useState('')
   const [sendMode, setSendMode] = useState('all')
   const [selectedOne, setSelectedOne] = useState(EMPLOYEES[0])
@@ -32,9 +29,8 @@ const [pwError, setPwError] = useState('')
   const notifIdRef = useRef(0)
 
   useEffect(() => {
-    if (!authed) return
     const pusher = new Pusher('b035f674ea3d1ad971ab', {
-  cluster: 'ap2',
+      cluster: 'ap2',
     })
     const channel = pusher.subscribe('admin-channel')
     channel.bind('acknowledgement', (data) => {
@@ -47,15 +43,7 @@ const [pwError, setPwError] = useState('')
       )
     })
     return () => pusher.disconnect()
-  }, [authed])
-
-  const login = () => {
-    if (pw === (process.env.NEXT_PUBLIC_ADMIN_PW || 'admin123')) {
-      setAuthed(true)
-    } else {
-      setPwError('Incorrect password')
-    }
-  }
+  }, [])
 
   const toggleMulti = (name) => {
     setSelectedMulti(prev =>
@@ -92,37 +80,14 @@ const [pwError, setPwError] = useState('')
     setSending(false)
   }
 
-  if (!authed) {
-    return (
-      <div style={styles.loginWrap}>
-        <div style={styles.loginBox}>
-          <div style={styles.loginLogo}>🔐</div>
-          <h2 style={styles.loginTitle}>ADMIN ACCESS</h2>
-          <p style={styles.loginSub}>StudyAbroad Consultancy — Internal System</p>
-          <input
-            type="password"
-            placeholder="Enter admin password"
-            value={pw}
-            onChange={e => { setPw(e.target.value); setPwError('') }}
-            onKeyDown={e => e.key === 'Enter' && login()}
-            style={{ ...styles.input, marginBottom: '8px' }}
-          />
-          {pwError && <p style={styles.error}>{pwError}</p>}
-          <button onClick={login} style={styles.btnGreen}>LOGIN</button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={styles.headerBadge}>ADMIN</span>
-<img src="/Logo.png" alt="logo" style={{ height: '32px', objectFit: 'contain', marginLeft: 'auto' }} />
-<h1 style={styles.headerTitle}>Notification Dashboard</h1>     
-   </div>
-        <span style={styles.headerSub}>{EMPLOYEES.length} employees</span>
+          <h1 style={styles.headerTitle}>Notification Dashboard</h1>
+        </div>
+        <img src="/Logo.png" alt="logo" style={{ height: '36px', objectFit: 'contain', background: 'white', padding: '4px 10px', borderRadius: '6px' }} />
       </div>
       <div style={styles.grid}>
         <div style={styles.card}>
@@ -164,7 +129,7 @@ const [pwError, setPwError] = useState('')
                   onClick={() => toggleMulti(e)}
                   style={selectedMulti.includes(e) ? styles.chipSelected : styles.chip}
                 >
-                  {selectedMulti.includes(e) ? '✓ ' : ''}{e.split(' ')[0]}
+                  {selectedMulti.includes(e) ? '✓ ' : ''}{e}
                 </div>
               ))}
             </div>
@@ -192,7 +157,7 @@ const [pwError, setPwError] = useState('')
                 <div style={styles.seenNames}>
                   {n.targets.map(t => (
                     <span key={t} style={n.seenBy.includes(t) ? styles.seenYes : styles.seenNo}>
-                      {n.seenBy.includes(t) ? '✓' : '○'} {t.split(' ')[0]}
+                      {n.seenBy.includes(t) ? '✓' : '○'} {t}
                     </span>
                   ))}
                 </div>
@@ -207,22 +172,21 @@ const [pwError, setPwError] = useState('')
 
 const styles = {
   page: { minHeight: '100vh', background: '#0f0f0f', padding: '0 0 40px 0' },
-  header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   headerBadge: { background: '#1a7a4a', color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '2px', letterSpacing: '2px', display: 'inline-block', marginBottom: '4px' },
   headerTitle: { color: '#22c55e', fontSize: '22px', fontWeight: 'bold', letterSpacing: '1px' },
-  headerSub: { color: '#555', fontSize: '13px' },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', padding: '28px 32px' },
   card: { background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: '6px', padding: '24px' },
   cardTitle: { color: '#22c55e', fontSize: '13px', letterSpacing: '2px', marginBottom: '20px', borderBottom: '1px solid #2e2e2e', paddingBottom: '12px' },
   label: { display: 'block', color: '#888', fontSize: '11px', letterSpacing: '1.5px', marginBottom: '8px' },
   input: { background: '#222', border: '1px solid #2e2e2e', color: '#e8e8e8', borderRadius: '4px', padding: '10px 14px', fontSize: '14px', width: '100%', fontFamily: 'monospace' },
   modeRow: { display: 'flex', gap: '8px', marginBottom: '16px' },
-  modeBtn: { flex: 1, padding: '8px', background: '#222', border: '1px solid #2e2e2e', color: '#888', borderRadius: '4px', fontSize: '12px' },
-  modeActive: { flex: 1, padding: '8px', background: '#16532f', border: '1px solid #22c55e', color: '#22c55e', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' },
+  modeBtn: { flex: 1, padding: '8px', background: '#222', border: '1px solid #2e2e2e', color: '#888', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' },
+  modeActive: { flex: 1, padding: '8px', background: '#16532f', border: '1px solid #22c55e', color: '#22c55e', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' },
   multiGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '16px' },
   chip: { padding: '6px 8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: '4px', color: '#888', fontSize: '12px', cursor: 'pointer', textAlign: 'center' },
   chipSelected: { padding: '6px 8px', background: '#16532f', border: '1px solid #22c55e', borderRadius: '4px', color: '#22c55e', fontSize: '12px', cursor: 'pointer', textAlign: 'center', fontWeight: 'bold' },
-  sendBtn: { width: '100%', padding: '14px', background: '#1a7a4a', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', letterSpacing: '1.5px', fontWeight: 'bold', marginTop: '8px', fontFamily: 'monospace' },
+  sendBtn: { width: '100%', padding: '14px', background: '#1a7a4a', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', letterSpacing: '1.5px', fontWeight: 'bold', marginTop: '8px', fontFamily: 'monospace', cursor: 'pointer' },
   empty: { color: '#555', fontSize: '13px', textAlign: 'center', padding: '40px 0' },
   notifCard: { background: '#111', border: '1px solid #2a2a2a', borderRadius: '4px', padding: '14px', marginBottom: '12px' },
   notifHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' },
@@ -234,11 +198,4 @@ const styles = {
   seenNames: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' },
   seenYes: { color: '#22c55e', fontSize: '11px', background: '#0d2e1a', padding: '2px 8px', borderRadius: '2px' },
   seenNo: { color: '#444', fontSize: '11px', background: '#1a1a1a', padding: '2px 8px', borderRadius: '2px' },
-  loginWrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f0f0f' },
-  loginBox: { background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: '8px', padding: '40px', width: '360px', textAlign: 'center' },
-  loginLogo: { fontSize: '40px', marginBottom: '16px' },
-  loginTitle: { color: '#22c55e', fontSize: '20px', letterSpacing: '3px', marginBottom: '8px' },
-  loginSub: { color: '#555', fontSize: '12px', marginBottom: '28px' },
-  btnGreen: { width: '100%', padding: '12px', background: '#1a7a4a', color: '#fff', borderRadius: '4px', fontSize: '14px', letterSpacing: '2px', fontFamily: 'monospace' },
-  error: { color: '#c0392b', fontSize: '12px', marginBottom: '12px' },
 }
