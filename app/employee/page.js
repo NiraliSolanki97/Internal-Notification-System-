@@ -46,16 +46,19 @@ export default function EmployeePage() {
         notif.onclick = () => { window.focus(); notif.close() }
       }
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = ctx.createOscillator()
-        const gainNode = ctx.createGain()
-        oscillator.connect(gainNode)
-        gainNode.connect(ctx.destination)
-        oscillator.frequency.value = 880
-        gainNode.gain.value = 0.3
-        oscillator.start()
-        oscillator.stop(ctx.currentTime + 0.3)
-      } catch(e) {}
+  const ctx = new (window.AudioContext || window.webkitAudioContext)()
+  for (let i = 0; i < 3; i++) {
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    oscillator.frequency.value = 880
+    gainNode.gain.value = 1.0
+    oscillator.start(ctx.currentTime + i * 0.4)
+    oscillator.stop(ctx.currentTime + i * 0.4 + 0.3)
+  }
+} catch(e) {}
+
     })
     return () => pusher.disconnect()
   }, [nameSet, name])
