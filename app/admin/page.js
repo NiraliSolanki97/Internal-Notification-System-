@@ -423,3 +423,4 @@ const styles = {
   chatInput: { flex: 1, background: '#1a1a1a', border: '1px solid #333', color: '#e8e8e8', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', fontFamily: 'monospace', outline: 'none' },
   sendChatBtn: { background: '#6633aa', color: '#fff', border: 'none', borderRadius: '6px', padding: '10px 18px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'monospace' },
 }
+
