@@ -21,7 +21,10 @@ export default function EmployeePage() {
   const [chatTarget, setChatTarget] = useState('')
   const [chatMsg, setChatMsg] = useState('')
   const [chatHistory, setChatHistory] = useState([])
+  const [screenFlash, setScreenFlash] = useState(false)
   const chatEndRef = useRef(null)
+  const originalTitle = useRef('Notification Inbox')
+  const blinkInterval = useRef(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('employee_name')
@@ -39,39 +42,74 @@ export default function EmployeePage() {
     }
   }
 
+  // Screen flash effect
+  const triggerScreenFlash = () => {
+    setScreenFlash(true)
+    setTimeout(() => setScreenFlash(false), 600)
+  }
+
+  // Tab title blink
+  const startTitleBlink = (msg) => {
+    let visible = true
+    if (blinkInterval.current) clearInterval(blinkInterval.current)
+    blinkInterval.current = setInterval(() => {
+      document.title = visible ? `🔔 NEW MESSAGE!` : originalTitle.current
+      visible = !visible
+    }, 800)
+  }
+
+  const stopTitleBlink = () => {
+    if (blinkInterval.current) clearInterval(blinkInterval.current)
+    document.title = originalTitle.current
+  }
+
+  // Beep sound — 4 times, loud
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      for (let i = 0; i < 4; i++) {
+        const oscillator = ctx.createOscillator()
+        const gainNode = ctx.createGain()
+        oscillator.connect(gainNode)
+        gainNode.connect(ctx.destination)
+        oscillator.frequency.value = 880
+        gainNode.gain.value = 1.0
+        oscillator.start(ctx.currentTime + i * 0.4)
+        oscillator.stop(ctx.currentTime + i * 0.4 + 0.3)
+      }
+    } catch (e) {}
+  }
+
+  // OS level browser notification
+  const showOSNotification = (title, body) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notif = new Notification(title, {
+        body,
+        requireInteraction: true,
+        icon: '/Logo.png',
+      })
+      notif.onclick = () => { window.focus(); notif.close(); stopTitleBlink() }
+    }
+  }
+
   useEffect(() => {
     if (!nameSet || !name) return
     const pusher = new Pusher('b035f674ea3d1ad971ab', { cluster: 'ap2' })
 
+    // Admin broadcast notification
     const notifChannel = pusher.subscribe('notifications')
     notifChannel.bind('new-notification', (data) => {
       const isForMe = data.targets.includes(name)
       if (!isForMe) return
       setPopup({ id: data.notifId, message: data.message })
       window.focus()
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const notif = new Notification('📣 IMPORTANT ANNOUNCEMENT', {
-          body: data.message,
-          requireInteraction: true,
-          icon: '/Logo.png',
-        })
-        notif.onclick = () => { window.focus(); notif.close() }
-      }
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)()
-        for (let i = 0; i < 3; i++) {
-          const oscillator = ctx.createOscillator()
-          const gainNode = ctx.createGain()
-          oscillator.connect(gainNode)
-          gainNode.connect(ctx.destination)
-          oscillator.frequency.value = 880
-          gainNode.gain.value = 1.0
-          oscillator.start(ctx.currentTime + i * 0.4)
-          oscillator.stop(ctx.currentTime + i * 0.4 + 0.3)
-        }
-      } catch (e) {}
+      playBeep()
+      triggerScreenFlash()
+      startTitleBlink()
+      showOSNotification('📣 IMPORTANT ANNOUNCEMENT', data.message)
     })
 
+    // Employee to employee chat — WITH OS popup + screen flash (no beep)
     const myChannel = pusher.subscribe(`employee-${name.toLowerCase()}`)
     myChannel.bind('chat-message', (data) => {
       setChatHistory(prev => [...prev, {
@@ -81,6 +119,10 @@ export default function EmployeePage() {
         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
         mine: false,
       }])
+      // OS popup + screen flash but NO beep
+      triggerScreenFlash()
+      startTitleBlink()
+      showOSNotification(`💬 Message from ${data.from}`, data.message)
     })
 
     return () => pusher.disconnect()
@@ -89,6 +131,13 @@ export default function EmployeePage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory, showChat])
+
+  // Stop blinking when user focuses back
+  useEffect(() => {
+    const handleFocus = () => stopTitleBlink()
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
 
   const saveName = () => {
     if (!nameInput.trim()) return
@@ -105,6 +154,7 @@ export default function EmployeePage() {
     })
     setLastSeen(prev => [{ id: popup.id, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }, ...prev])
     setPopup(null)
+    stopTitleBlink()
   }
 
   const sendToAdmin = async () => {
@@ -166,7 +216,14 @@ export default function EmployeePage() {
   }
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, position: 'relative' }}>
+
+      {/* Screen Flash Overlay */}
+      {screenFlash && (
+        <div style={styles.flashOverlay} />
+      )}
+
+      {/* Admin Broadcast Popup */}
       {popup && (
         <div style={styles.overlay}>
           <div style={styles.popupBox}>
@@ -184,6 +241,7 @@ export default function EmployeePage() {
         </div>
       )}
 
+      {/* Message Admin Modal */}
       {showMsgAdmin && (
         <div style={styles.overlay}>
           <div style={{ ...styles.popupBox, maxWidth: '480px' }}>
@@ -206,12 +264,13 @@ export default function EmployeePage() {
         </div>
       )}
 
+      {/* Employee Chat Modal */}
       {showChat && (
         <div style={styles.overlay}>
           <div style={styles.chatBox}>
             <div style={styles.chatHeader}>
               <span style={styles.popupBadge}>💬 INTERNAL CHAT</span>
-              <button onClick={() => setShowChat(false)} style={styles.closeBtn}>✕</button>
+              <button onClick={() => { setShowChat(false); stopTitleBlink() }} style={styles.closeBtn}>✕</button>
             </div>
             {!chatTarget ? (
               <div style={styles.chatSelectWrap}>
@@ -260,6 +319,7 @@ export default function EmployeePage() {
         </div>
       )}
 
+      {/* Main Dashboard */}
       <div style={styles.header}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={styles.badge}>EMPLOYEE</span>
@@ -283,7 +343,7 @@ export default function EmployeePage() {
           <button onClick={() => setShowMsgAdmin(true)} style={styles.msgAdminBtn}>
             ✉️ &nbsp; MESSAGE ADMIN
           </button>
-          <button onClick={() => setShowChat(true)} style={styles.chatBtn}>
+          <button onClick={() => { setShowChat(true); stopTitleBlink() }} style={styles.chatBtn}>
             💬 &nbsp; CHAT WITH COLLEAGUE
           </button>
         </div>
@@ -302,6 +362,11 @@ export default function EmployeePage() {
 
 const styles = {
   page: { minHeight: '100vh', background: '#0f0f0f' },
+  flashOverlay: {
+    position: 'fixed', inset: 0, background: 'rgba(34, 197, 94, 0.25)',
+    zIndex: 99999, pointerEvents: 'none',
+    animation: 'none',
+  },
   header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   badge: { background: '#16532f', color: '#22c55e', fontSize: '11px', padding: '2px 10px', borderRadius: '2px', letterSpacing: '2px', display: 'inline-block', marginBottom: '4px' },
   headerTitle: { color: '#e8e8e8', fontSize: '20px', fontWeight: 'bold' },
