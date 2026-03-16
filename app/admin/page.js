@@ -4,7 +4,7 @@ import Pusher from 'pusher-js'
 
 const EMPLOYEES = [
   'Nirali', 'Shraddha', 'Ishita', 'Joshphina', 'Sinchal',
-  'Mayank', 'Neha', 'Neh', 'Haider', 'Keya', 'Swapnil', 'Juhi', 'Shrusti',
+  'Mayank', 'Neha', 'Neh', 'Haider', 'Keya', 'Swapnil', 'Juhi', 'Shrusti', 'Pooja'
 ]
 
 export default function AdminPage() {
