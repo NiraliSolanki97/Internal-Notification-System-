@@ -1,10 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Pusher from 'pusher-js'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 const EMPLOYEES = [
   'Nirali', 'Shraddha', 'Ishita', 'Joshphina', 'Sinchal',
-  'Mayank', 'Neha', 'Neh', 'Haider', 'Keya', 'Swapnil', 'Juhi', 'Shrusti','Pooja'
+  'Mayank', 'Neha', 'Neh', 'Haider', 'Keya', 'Swapnil', 'Juhi', 'Shrusti', 'Pooja',
 ]
 
 export default function EmployeePage() {
@@ -13,6 +19,7 @@ export default function EmployeePage() {
   const [nameInput, setNameInput] = useState('')
   const [popup, setPopup] = useState(null)
   const [lastSeen, setLastSeen] = useState([])
+  const [missedNotifs, setMissedNotifs] = useState([])
   const [notifPermission, setNotifPermission] = useState('default')
   const [showMsgAdmin, setShowMsgAdmin] = useState(false)
   const [adminMsg, setAdminMsg] = useState('')
@@ -42,18 +49,16 @@ export default function EmployeePage() {
     }
   }
 
-  // Screen flash effect
   const triggerScreenFlash = () => {
     setScreenFlash(true)
     setTimeout(() => setScreenFlash(false), 600)
   }
 
-  // Tab title blink
-  const startTitleBlink = (msg) => {
+  const startTitleBlink = () => {
     let visible = true
     if (blinkInterval.current) clearInterval(blinkInterval.current)
     blinkInterval.current = setInterval(() => {
-      document.title = visible ? `🔔 NEW MESSAGE!` : originalTitle.current
+      document.title = visible ? '🔔 NEW MESSAGE!' : originalTitle.current
       visible = !visible
     }, 800)
   }
@@ -63,7 +68,6 @@ export default function EmployeePage() {
     document.title = originalTitle.current
   }
 
-  // Beep sound — 4 times, loud
   const playBeep = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -80,7 +84,6 @@ export default function EmployeePage() {
     } catch (e) {}
   }
 
-  // OS level browser notification
   const showOSNotification = (title, body) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       const notif = new Notification(title, {
@@ -94,9 +97,21 @@ export default function EmployeePage() {
 
   useEffect(() => {
     if (!nameSet || !name) return
+
+    // Missed notifications fetch karo
+    const fetchMissed = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .contains('targets', [name])
+        .order('sent_at', { ascending: false })
+        .limit(10)
+      if (data) setMissedNotifs(data)
+    }
+    fetchMissed()
+
     const pusher = new Pusher('b035f674ea3d1ad971ab', { cluster: 'ap2' })
 
-    // Admin broadcast notification
     const notifChannel = pusher.subscribe('notifications')
     notifChannel.bind('new-notification', (data) => {
       const isForMe = data.targets.includes(name)
@@ -107,9 +122,14 @@ export default function EmployeePage() {
       triggerScreenFlash()
       startTitleBlink()
       showOSNotification('📣 IMPORTANT ANNOUNCEMENT', data.message)
+      // Also add to missed notifs
+      setMissedNotifs(prev => [{
+        notif_id: data.notifId,
+        message: data.message,
+        sent_at: new Date().toISOString(),
+      }, ...prev])
     })
 
-    // Employee to employee chat — WITH OS popup + screen flash (no beep)
     const myChannel = pusher.subscribe(`employee-${name.toLowerCase()}`)
     myChannel.bind('chat-message', (data) => {
       setChatHistory(prev => [...prev, {
@@ -119,7 +139,6 @@ export default function EmployeePage() {
         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
         mine: false,
       }])
-      // OS popup + screen flash but NO beep
       triggerScreenFlash()
       startTitleBlink()
       showOSNotification(`💬 Message from ${data.from}`, data.message)
@@ -132,7 +151,6 @@ export default function EmployeePage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory, showChat])
 
-  // Stop blinking when user focuses back
   useEffect(() => {
     const handleFocus = () => stopTitleBlink()
     window.addEventListener('focus', handleFocus)
@@ -217,13 +235,8 @@ export default function EmployeePage() {
 
   return (
     <div style={{ ...styles.page, position: 'relative' }}>
+      {screenFlash && <div style={styles.flashOverlay} />}
 
-      {/* Screen Flash Overlay */}
-      {screenFlash && (
-        <div style={styles.flashOverlay} />
-      )}
-
-      {/* Admin Broadcast Popup */}
       {popup && (
         <div style={styles.overlay}>
           <div style={styles.popupBox}>
@@ -241,7 +254,6 @@ export default function EmployeePage() {
         </div>
       )}
 
-      {/* Message Admin Modal */}
       {showMsgAdmin && (
         <div style={styles.overlay}>
           <div style={{ ...styles.popupBox, maxWidth: '480px' }}>
@@ -264,7 +276,6 @@ export default function EmployeePage() {
         </div>
       )}
 
-      {/* Employee Chat Modal */}
       {showChat && (
         <div style={styles.overlay}>
           <div style={styles.chatBox}>
@@ -277,9 +288,7 @@ export default function EmployeePage() {
                 <p style={styles.chatSelectHint}>Select a colleague to chat with:</p>
                 <div style={styles.employeeGrid}>
                   {EMPLOYEES.filter(e => e !== name).map(e => (
-                    <div key={e} onClick={() => setChatTarget(e)} style={styles.employeeChip}>
-                      {e}
-                    </div>
+                    <div key={e} onClick={() => setChatTarget(e)} style={styles.employeeChip}>{e}</div>
                   ))}
                 </div>
               </div>
@@ -290,14 +299,10 @@ export default function EmployeePage() {
                   <span style={styles.chatTargetName}>Chatting with: <strong style={{ color: '#22c55e' }}>{chatTarget}</strong></span>
                 </div>
                 <div style={styles.chatMessages}>
-                  {chatMessages.length === 0 && (
-                    <p style={styles.noChatMsg}>No messages yet. Say hi! 👋</p>
-                  )}
+                  {chatMessages.length === 0 && <p style={styles.noChatMsg}>No messages yet. Say hi! 👋</p>}
                   {chatMessages.map((m, i) => (
                     <div key={i} style={m.mine ? styles.msgRight : styles.msgLeft}>
-                      <div style={m.mine ? styles.bubbleRight : styles.bubbleLeft}>
-                        {m.message}
-                      </div>
+                      <div style={m.mine ? styles.bubbleRight : styles.bubbleLeft}>{m.message}</div>
                       <div style={styles.msgTime}>{m.time}</div>
                     </div>
                   ))}
@@ -319,7 +324,6 @@ export default function EmployeePage() {
         </div>
       )}
 
-      {/* Main Dashboard */}
       <div style={styles.header}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={styles.badge}>EMPLOYEE</span>
@@ -340,13 +344,21 @@ export default function EmployeePage() {
           </div>
         )}
         <div style={styles.actionRow}>
-          <button onClick={() => setShowMsgAdmin(true)} style={styles.msgAdminBtn}>
-            ✉️ &nbsp; MESSAGE ADMIN
-          </button>
-          <button onClick={() => { setShowChat(true); stopTitleBlink() }} style={styles.chatBtn}>
-            💬 &nbsp; CHAT WITH COLLEAGUE
-          </button>
+          <button onClick={() => setShowMsgAdmin(true)} style={styles.msgAdminBtn}>✉️ &nbsp; MESSAGE ADMIN</button>
+          <button onClick={() => { setShowChat(true); stopTitleBlink() }} style={styles.chatBtn}>💬 &nbsp; CHAT WITH COLLEAGUE</button>
         </div>
+
+        <h3 style={styles.sectionTitle}>📬 MISSED NOTIFICATIONS</h3>
+        {missedNotifs.length === 0 && <p style={styles.empty}>No missed notifications!</p>}
+        {missedNotifs.map((n, i) => (
+          <div key={i} style={styles.missedCard}>
+            <div style={styles.missedTime}>
+              {new Date(n.sent_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <p style={styles.missedMsg}>{n.message}</p>
+          </div>
+        ))}
+
         <h3 style={styles.sectionTitle}>ACKNOWLEDGED NOTIFICATIONS</h3>
         {lastSeen.length === 0 && <p style={styles.empty}>No notifications received yet.</p>}
         {lastSeen.map((item, i) => (
@@ -362,11 +374,7 @@ export default function EmployeePage() {
 
 const styles = {
   page: { minHeight: '100vh', background: '#0f0f0f' },
-  flashOverlay: {
-    position: 'fixed', inset: 0, background: 'rgba(34, 197, 94, 0.25)',
-    zIndex: 99999, pointerEvents: 'none',
-    animation: 'none',
-  },
+  flashOverlay: { position: 'fixed', inset: 0, background: 'rgba(34, 197, 94, 0.25)', zIndex: 99999, pointerEvents: 'none' },
   header: { background: '#111', borderBottom: '2px solid #1a7a4a', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   badge: { background: '#16532f', color: '#22c55e', fontSize: '11px', padding: '2px 10px', borderRadius: '2px', letterSpacing: '2px', display: 'inline-block', marginBottom: '4px' },
   headerTitle: { color: '#e8e8e8', fontSize: '20px', fontWeight: 'bold' },
@@ -381,6 +389,9 @@ const styles = {
   chatBtn: { padding: '12px 24px', background: '#2a1a4a', border: '1px solid #6633aa', color: '#bb88ff', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px', fontFamily: 'monospace', cursor: 'pointer' },
   sectionTitle: { color: '#555', fontSize: '11px', letterSpacing: '2px', marginBottom: '16px', marginTop: '16px' },
   empty: { color: '#333', fontSize: '14px' },
+  missedCard: { background: '#1a1200', border: '1px solid #5a4000', borderRadius: '4px', padding: '12px 16px', marginBottom: '8px' },
+  missedTime: { color: '#ffaa00', fontSize: '11px', marginBottom: '4px' },
+  missedMsg: { color: '#e8e8e8', fontSize: '13px' },
   seenItem: { background: '#111', border: '1px solid #1e3a2a', borderRadius: '4px', padding: '12px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' },
   seenCheck: { color: '#22c55e', fontSize: '16px' },
   seenText: { color: '#555', fontSize: '13px' },
